@@ -1,60 +1,64 @@
 <template>
   <v-app>
-    <v-app-bar
-      app
-      color="primary"
-      dark
-    >
-      <div class="d-flex align-center">
-        <v-img
-          alt="Vuetify Logo"
-          class="shrink mr-2"
-          contain
-          src="https://cdn.vuetifyjs.com/images/logos/vuetify-logo-dark.png"
-          transition="scale-transition"
-          width="40"
-        />
-
-        <v-img
-          alt="Vuetify Name"
-          class="shrink mt-1 hidden-sm-and-down"
-          contain
-          min-width="100"
-          src="https://cdn.vuetifyjs.com/images/logos/vuetify-name-dark.png"
-          width="100"
-        />
-      </div>
-
-      <v-spacer></v-spacer>
-
-      <v-btn
-        href="https://github.com/vuetifyjs/vuetify/releases/latest"
-        target="_blank"
-        text
-      >
-        <span class="mr-2">Latest Release</span>
-        <v-icon>mdi-open-in-new</v-icon>
-      </v-btn>
-    </v-app-bar>
-
-    <v-main>
-      <HelloWorld/>
+    <v-main height="auto">
+      <v-row no-gutters>
+        <v-col cols="auto">
+          <Navigation
+            :changeSelectedIndexNavigation="changeSelectedIndexNavigation"
+          />
+        </v-col>
+        <v-col class="ma-2">
+          <component :is="currentTabComponent"></component>
+        </v-col>
+      </v-row>
     </v-main>
   </v-app>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld';
+import Navigation from "./components/Navigation";
+import TestContainer from "./components/TestContainer";
+import ProjectForm from "./components/ProjectForm";
 
 export default {
-  name: 'App',
+  name: "App",
 
   components: {
-    HelloWorld,
+    Navigation,
+    TestContainer,
+    ProjectForm,
   },
 
-  data: () => ({
-    //
-  }),
+  data() {
+    return {
+      message: "Hello",
+      selectedIndexNavigation: -1,
+    };
+  },
+
+  computed: {
+    currentTabComponent() {
+      if (this.selectedIndexNavigation === 0) {
+        return ProjectForm;
+      }
+      if (this.selectedIndexNavigation >= 1) {
+        return TestContainer;
+      }
+      return null;
+    },
+    reversedMessage() {
+      return this.message.split("").reverse().join("");
+    },
+  },
+
+  methods: {
+    changeSelectedIndexNavigation(index) {
+      this.selectedIndexNavigation = index;
+    },
+
+    reversedMessage2() {
+      return this.message.split("").reverse().join("");
+    },
+  },
 };
 </script>

@@ -14,53 +14,72 @@
             :rules="rules.requiredInputField"
             label="Nombre del proyecto"
             required
+            outlined
           ></v-text-field>
         </v-col>
         <v-col cols="12" sm="6">
           <v-select
             v-model="form.clasification"
-            :rules="rules.requiredInputField"
+            :rules="rules.requiredSelectField"
             :items="items"
             item-text="value"
             item-value="id"
             label="Clasificación del proyecto"
+            outlined
+            required
           ></v-select>
         </v-col>
+      </v-row>
+      <v-row>
         <v-col cols="12" sm="6">
           <v-text-field
             v-model="form.longitude"
-            :rules="rules.requiredInputField"
+            :rules="rules.numberLongitudeField"
             label="Longitud"
+            append-icon="mdi-map-marker"
             required
+            outlined
+            @keyup="onChangeLngLat"
           ></v-text-field>
         </v-col>
         <v-col cols="12" sm="6">
           <v-text-field
             v-model="form.latitude"
-            :rules="rules.requiredInputField"
+            :rules="rules.numberLatitudeField"
             label="Latitud"
+            append-icon="mdi-map-marker"
+            outlined
+            @keyup="onChangeLngLat"
           ></v-text-field>
         </v-col>
-        <v-col cols="12" sm="12" class="px-8" :style="{ height: '650px' }">
-          <MglMap
-            :accessToken="accessToken"
-            :mapStyle="mapStyle"
-            :center="[-88.85, 13.82]"
-            :zoom="8"
-          />
-        </v-col>
-        <v-col cols="12" sm="12">
-          <v-textarea
-            :rules="rules.textAreaField"
-            v-model="form.description"
-            label="Descripción del proyecto"
-            rows="2"
-            value=""
-            counter
-            maxlength="25"
-          ></v-textarea>
-        </v-col>
       </v-row>
+      <v-col cols="12" sm="12" class="px-8" :style="{ height: '650px' }">
+        <MglMap
+          :accessToken="accessToken"
+          :mapStyle="mapStyle"
+          :center="coordinateMap"
+          :zoom="zoomMap"
+          :speed="1"
+          @click="setMarker"
+          @load="onMapLoaded"
+        >
+          <template v-if="showMarker">
+            <MglMarker :coordinates="coordinatePopUp" />
+          </template>
+        </MglMap>
+      </v-col>
+      <v-col cols="12" sm="12">
+        <v-textarea
+          :rules="rules.textAreaField"
+          v-model="form.description"
+          label="Descripción del proyecto"
+          rows="2"
+          value=""
+          counter
+          maxlength="25"
+          outlined
+        ></v-textarea>
+      </v-col>
 
       <v-btn color="grey lighten-2" @click="cleanForm" class="mr-4">
         Limpiar Formulario
@@ -84,9 +103,10 @@
     </v-snackbar>
   </v-container>
 </template>
+
 <script>
 import Mapbox from "mapbox-gl";
-import { MglMap } from "vue-mapbox";
+import { MglMap, MglMarker } from "vue-mapbox";
 
 const defaultForm = Object.freeze({
   projectName: "",
@@ -101,6 +121,7 @@ export default {
 
   components: {
     MglMap,
+    MglMarker,
   },
 
   created() {
@@ -112,6 +133,11 @@ export default {
       accessToken:
         "pk.eyJ1Ijoia2VybmVsNTAzIiwiYSI6ImNrZHA5cmhiYTIwamgyeXBkOTgyZmU1cmkifQ.bK_Wbz4134Uf33qBDGklKg",
       mapStyle: "mapbox://styles/mapbox/satellite-streets-v11",
+      coordinateMap: [-88.85, 13.82],
+      zoomMap: 8,
+
+      showMarker: false,
+      coordinatePopUp: [0, 0],
 
       items: [
         { value: "Programming", id: 1 },
@@ -125,20 +151,40 @@ export default {
         text: "",
       },
 
-      textSnackBar: "ho",
       validForm: true,
+
       form: { ...defaultForm },
+
       rules: {
         requiredInputField: [
-          (value) => !!value || "Este campo es requerido",
+          (value) => !!value || "Este campo es requerido.",
           (value) =>
             value.length <= 255 ||
             "El nombre del proyecto no puede tener más de 255 caracteres.",
         ],
+
+        requiredSelectField: [(value) => !!value || "Este campo es requerido."],
+
         textAreaField: [
           (value) =>
             value.length <= 255 ||
             "El nombre del proyecto no puede tener más de 255 caracteres.",
+        ],
+
+        numberLongitudeField: [
+          (value) =>
+            parseFloat(value) == value || "Este campo debe ser un número.",
+          (value) =>
+            (parseFloat(value) <= 180 && parseFloat(value) >= -180) ||
+            "Rango valido -180 a 180.",
+        ],
+
+        numberLatitudeField: [
+          (value) =>
+            parseFloat(value) == value || "Este campo debe ser un número.",
+          (value) =>
+            (parseFloat(value) <= 90 && parseFloat(value) >= -90) ||
+            "Rango valido -90 a 90.",
         ],
       },
     };
@@ -146,9 +192,11 @@ export default {
 
   methods: {
     cleanForm() {
-      this.$refs.form.reset();
       this.$refs.form.resetValidation();
+      this.form = { ...defaultForm };
+      this.showMarker = false;
     },
+
     submitForm() {
       const validForm = this.$refs.form.validate();
       if (!validForm) {
@@ -156,7 +204,30 @@ export default {
           visible: true,
           text: "Debe completar el formulario.",
         };
+        return;
       }
+      console.log(this.form);
+    },
+
+    onMapLoaded() {
+      this.loadingMap = false;
+    },
+
+    setMarker(e) {
+      const [lng, lat] = Object.values(e.mapboxEvent.lngLat.wrap());
+      this.coordinatePopUp = [lng, lat];
+      this.form.longitude = lng.toFixed(6);
+      this.form.latitude = lat.toFixed(6);
+      this.showMarker = true;
+    },
+
+    onChangeLngLat() {
+      if (+this.form.latitude && +this.form.longitude && this.validForm) {
+        this.coordinatePopUp = [+this.form.longitude, +this.form.latitude];
+        this.showMarker = true;
+        return;
+      }
+      this.showMarker = false;
     },
   },
 };

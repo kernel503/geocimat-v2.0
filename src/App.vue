@@ -3,12 +3,20 @@
     <v-main height="auto">
       <v-row no-gutters>
         <v-col cols="auto">
-          <Navigation
-            :changeSelectedIndexNavigation="changeSelectedIndexNavigation"
-          />
+          <Navigation :setNewComponent="setNewComponent" />
         </v-col>
         <v-col class="ma-2">
-          <component :is="currentTabComponent"></component>
+          <template
+            v-if="contentComponent !== null && contentComponentProps === null"
+          >
+            <component :is="contentComponent"> </component>
+          </template>
+          <template v-if="contentComponentProps !== null">
+            <component
+              :is="contentComponent"
+              v-bind="{ ...contentComponentProps }"
+            ></component>
+          </template>
         </v-col>
       </v-row>
     </v-main>
@@ -17,47 +25,30 @@
 
 <script>
 import Navigation from "./components/Navigation";
-import TestContainer from "./components/TestContainer";
-import ProjectForm from "./components/ProjectForm";
 
 export default {
   name: "App",
 
   components: {
     Navigation,
-    TestContainer,
-    ProjectForm,
   },
 
   data() {
     return {
-      message: "Hello",
-      selectedIndexNavigation: -1,
+      contentComponent: null,
+      contentComponentProps: null,
     };
   },
 
-  computed: {
-    currentTabComponent() {
-      if (this.selectedIndexNavigation === 0) {
-        return ProjectForm;
-      }
-      if (this.selectedIndexNavigation >= 1) {
-        return TestContainer;
-      }
-      return null;
-    },
-    reversedMessage() {
-      return this.message.split("").reverse().join("");
-    },
-  },
-
   methods: {
-    changeSelectedIndexNavigation(index) {
-      this.selectedIndexNavigation = index;
-    },
-
-    reversedMessage2() {
-      return this.message.split("").reverse().join("");
+    setNewComponent(component, props) {
+      if (props) {
+        this.contentComponent = component;
+        this.contentComponentProps = { id: props };
+      } else {
+        this.contentComponent = component;
+        this.contentComponentProps = null;
+      }
     },
   },
 };
